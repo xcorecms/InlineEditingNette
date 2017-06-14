@@ -7,6 +7,7 @@ use Latte\Compiler;
 use Latte\MacroNode;
 use Latte\Macros\MacroSet;
 use Latte\PhpWriter;
+use Nette\Http\IRequest;
 
 /**
  * @author Jakub Janata <jakubjanata@gmail.com>
@@ -16,13 +17,18 @@ final class Macros extends MacroSet
     /** @var bool */
     private $useTranslator;
 
+    /** @var IRequest */
+    private $request;
+
     /**
      * @param Compiler $compiler
+     * @param IRequest $request
      * @param bool $useTranslator
      */
-    public function __construct(Compiler $compiler, bool $useTranslator)
+    public function __construct(Compiler $compiler, IRequest $request, bool $useTranslator)
     {
         parent::__construct($compiler);
+        $this->request = $request;
         $this->useTranslator = $useTranslator;
 
         $this->addMacro('inline', null, [$this, 'macroInline']);
@@ -32,12 +38,13 @@ final class Macros extends MacroSet
 
     /**
      * @param Compiler $compiler
+     * @param IRequest $request
      * @param bool $useTranslator
      * @return Macros
      */
-    public static function install(Compiler $compiler, bool $useTranslator = false): Macros
+    public static function install(Compiler $compiler, IRequest $request, bool $useTranslator = false): Macros
     {
-        return new self($compiler, $useTranslator);
+        return new self($compiler, $request, $useTranslator);
     }
 
     /**
@@ -99,10 +106,12 @@ final class Macros extends MacroSet
      */
     public function macroSource(): string
     {
+        $baseUrl = rtrim($this->request->getUrl()->getBaseUrl(), '/');
+
         return 'if($this->global->inlinePermissionChecker->isGlobalEditationAllowed()) {
-                    echo \'<script src="/inline/inline.js" id="inline-editing-source"
-                    data-source-css="/inline/inline.css"
-                    data-source-tinymce-js="/inline/tinymce/tinymce.min.js"
-                    data-source-gateway-url="/inline-editing"></script>\';}';
+                    echo \'<script src="' . $baseUrl . '/inline/inline.js" id="inline-editing-source"
+                    data-source-css="' . $baseUrl . '/inline/inline.css"
+                    data-source-tinymce-js="' . $baseUrl . '/inline/tinymce/tinymce.min.js"
+                    data-source-gateway-url="' . $baseUrl . '/inline-editing"></script>\';}';
     }
 }

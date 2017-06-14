@@ -143,8 +143,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         // macros
         $latteFactory->addSetup(
             '?->onCompile[] = function($engine) {' .
-            Macros::class . '::install($engine->getCompiler(), ' . ($translator !== null ? 'true' : 'false') . ');}',
-            ['@self',]
+            Macros::class . '::install($engine->getCompiler(), ?, ' . ($translator !== null ? 'true' : 'false') . ');}',
+            ['@self', '@http.request']
         );
 
         // filters
@@ -157,7 +157,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
 
         // providers
         $latteFactory->addSetup(
-            '?->addProvider(\'inlinePermissionChecker\', ?)', ['@self', $this->prefix('@permissionChecker')]
+            '?->addProvider(\'inlinePermissionChecker\', ?)',
+            ['@self', $this->prefix('@permissionChecker')]
         );
 
         if ($translator) {
