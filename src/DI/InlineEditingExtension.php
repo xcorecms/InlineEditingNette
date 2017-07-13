@@ -201,7 +201,11 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
 
         switch (true) {
             case $this->persistenceClass === Dbal::class:
-                $options = $builder->getDefinitionByType(Connection::class)->getFactory()->arguments[0];
+                $factory = $builder->getDefinitionByType(Connection::class)->getFactory();
+                if ($factory === null) {
+                    throw new MissingServiceException('Can\'t find definition of ' . Connection::class);
+                }
+                $options = $factory->arguments[0];
 
                 $driver = strpos($options['driver'], 'mysql') !== false ? 'mysql' : $options['driver'];
                 $dsn = $driver . ':host=' . $options['host'] .  ';dbname=' . $options['dbname'];
