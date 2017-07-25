@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Security;
 
+use Closure;
 use Nette\SmartObject;
+use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineEntityPermissionEvent;
 use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineGlobalPermissionEvent;
 use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineItemPermissionEvent;
 
@@ -16,24 +18,22 @@ use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineItemPermissionEvent;
 
  * @method onCheckGlobalPermission(CheckInlineGlobalPermissionEvent $event)
  * @method onCheckItemPermission(CheckInlineItemPermissionEvent $event)
+ * @method onCheckEntityPermission(CheckInlineEntityPermissionEvent $event)
  */
 class InlinePermissionChecker
 {
     use SmartObject;
 
-    /**
-     * @var \Closure[]
-     */
+    /** @var Closure[] */
     public $onCheckGlobalPermission = [];
 
-    /**
-     * @var \Closure[]
-     */
+    /** @var Closure[] */
     public $onCheckItemPermission = [];
 
-    /**
-     * @var bool|null
-     */
+    /** @var Closure[] */
+    public $onCheckEntityPermission = [];
+
+    /** @var bool|null */
     private $globalEditationAllowed;
 
     /**
@@ -59,6 +59,30 @@ class InlinePermissionChecker
         // check item permissions
         $event = new CheckInlineItemPermissionEvent($namespace, $locale, $name);
         $this->onCheckItemPermission($event);
+        return $event->isAllowed();
+    }
+
+    /**
+     * @param mixed $entity
+     * @return bool
+     */
+    public function isEntityEditationAllowed($entity): bool
+    {
+        $isAllowed = $this->isGlobalEditationAllowed();
+
+        // global allowed
+        if ($isAllowed === false) {
+            return false;
+        }
+
+        // no handlers - is allowed
+        if (count($this->onCheckEntityPermission) === 0) {
+            return true;
+        }
+
+        // check entity permissions
+        $event = new CheckInlineEntityPermissionEvent($entity);
+        $this->onCheckEntityPermission($event);
         return $event->isAllowed();
     }
 

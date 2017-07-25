@@ -12,10 +12,11 @@ use Nette\DI\MissingServiceException;
 use Nette\InvalidArgumentException;
 use Nette\NotImplementedException;
 use PDO;
-use XcoreCMS\InlineEditing\Model\ContentProvider;
-use XcoreCMS\InlineEditing\Model\PersistenceLayer\Dbal;
-use XcoreCMS\InlineEditing\Model\PersistenceLayer\Dibi;
-use XcoreCMS\InlineEditing\Model\PersistenceLayer\NetteDatabase;
+use XcoreCMS\InlineEditing\Model\Entity\EntityPersister;
+use XcoreCMS\InlineEditing\Model\Simple\ContentProvider;
+use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dbal;
+use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dibi;
+use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\NetteDatabase;
 use XcoreCMS\InlineEditingNette\Handler\Route;
 use XcoreCMS\InlineEditingNette\Latte\Macros;
 use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
@@ -38,6 +39,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         'url' => '/inline-editing',
         'assetsDir' => 'inline',
         'allowedRoles' => null,
+        'entityMode' => false,
         'install' => [
             'assets' => true,
             'database' => true
@@ -60,7 +62,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             throw new MissingServiceException('You must register PrependRouteExtension');
         }
 
-        $builder
+        $routerDef = $builder
             ->addDefinition($this->prefix('router'))
             ->setClass(Route::class, [$config['url']])
             ->setAutowired(false);
@@ -114,6 +116,16 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
                 ->addDefinition($this->prefix('simpleChecker'))
                 ->setClass(SimpleUserRoleCheckerService::class, [$config['allowedRoles']])
                 ->addTag('run');
+        }
+
+        // entityMode
+        if ($config['entityMode'] === true) {
+            // entity persister
+            $entityPersisterDef = $builder
+                ->addDefinition($this->prefix('entityPersister'))
+                ->setClass(EntityPersister::class);
+
+            $routerDef->getFactory()->arguments['entityPersister'] = $entityPersisterDef;
         }
 
         if ($config['install']['assets'] === true) {
@@ -208,7 +220,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
                 $options = $factory->arguments[0];
 
                 $driver = strpos($options['driver'], 'mysql') !== false ? 'mysql' : $options['driver'];
-                $dsn = $driver . ':host=' . $options['host'] .  ';dbname=' . $options['dbname'];
+                $dsn = $driver . ':host=' . $options['host'] . ';dbname=' . $options['dbname'];
                 $username = $options['user'];
                 $password = $options['password'];
                 break;

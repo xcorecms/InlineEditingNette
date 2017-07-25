@@ -41,4 +41,5 @@ inline:
     install:
         assets: false # default true - install assets to www dir
         database: false # default true - create database table
+    entityMode: true # default false - turn on entity mode editation
 ```

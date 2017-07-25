@@ -33,6 +33,11 @@ final class Macros extends MacroSet
 
         $this->addMacro('inline', null, [$this, 'macroInline']);
         $this->addMacro('inlineNamespace', null, [$this, 'macroNamespace']);
+        $this->addMacro('inlineEntityBlock', null, [$this, 'macroEntityBlock']);
+        $this->addMacro('inlineEntity', null, [$this, 'macroEntity']);
+        $this->addMacro('inlineEntityHtml', null, [$this, 'macroEntityHtml']);
+        $this->addMacro('inlineField', null, [$this, 'macroEntityField']);
+        $this->addMacro('inlineFieldHtml', null, [$this, 'macroEntityFieldHtml']);
         $this->addMacro('inlineSource', [$this, 'macroSource']);
     }
 
@@ -79,6 +84,7 @@ final class Macros extends MacroSet
 
         $node->attrCode .= ' <?php if($this->global->inlinePermissionChecker' .
             '->isItemEditationAllowed($_inline_namespace, $_inline_locale, $_inline_name)) {' .
+            'echo "data-inline-type=\"simple\" ";' .
             'echo "data-inline-name=\"$_inline_name\" ";' .
             'echo "data-inline-namespace=\"$_inline_namespace\" "; ' .
             'echo "data-inline-locale=\"$_inline_locale\" ";' .
@@ -96,9 +102,86 @@ final class Macros extends MacroSet
      */
     public function macroNamespace(MacroNode $node, PhpWriter $writer): void
     {
-        $namespace = $writer->formatArgs();
-        $node->openingCode = '<?php $inlineNamespaceStack[] = "' . trim($namespace, "'") . '"; ?>';
+        $node->openingCode = $writer->write('<?php $inlineNamespaceStack[] = %node.word; ?>');
         $node->closingCode = '<?php array_pop($inlineNamespaceStack); ?>';
+    }
+
+    /**
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     */
+    public function macroEntityField(MacroNode $node, PhpWriter $writer): void
+    {
+        $code = '$_inline_entity = end($inlineEntityStack); $_inline_property = %node.word;';
+        $this->prepareEntityMacro($node, $writer, $code, 'entity-specific');
+    }
+
+    /**
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     */
+    public function macroEntity(MacroNode $node, PhpWriter $writer): void
+    {
+        $code = '[$_inline_entity, $_inline_property] = [%node.args];';
+        $this->prepareEntityMacro($node, $writer, $code, 'entity-specific');
+    }
+
+    /**
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     */
+    public function macroEntityFieldHtml(MacroNode $node, PhpWriter $writer): void
+    {
+        $code = '$_inline_entity = end($inlineEntityStack); $_inline_property = %node.word;';
+        $this->prepareEntityMacro($node, $writer, $code, 'entity');
+    }
+
+    /**
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     */
+    public function macroEntityHtml(MacroNode $node, PhpWriter $writer): void
+    {
+        $code = '[$_inline_entity, $_inline_property] = [%node.args];';
+        $this->prepareEntityMacro($node, $writer, $code, 'entity');
+    }
+
+    /**
+     * Base method for entity macros
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     * @param string $code
+     * @param string $type
+     */
+    protected function prepareEntityMacro(MacroNode $node, PhpWriter $writer, string $code, string $type)
+    {
+        $node->openingCode = $writer->write('<?php ' .
+            $code .
+            '$_inline_class = get_class($_inline_entity);' .
+            '$_inline_id = $_inline_entity->id;' .
+            '$_inline_content = $_inline_entity->{$_inline_property};?>');
+
+        $node->attrCode .= ' <?php if($this->global->inlinePermissionChecker' .
+            '->isEntityEditationAllowed($_inline_entity)) {' .
+            'echo "id=\"inline_{$_inline_class}_{$_inline_id}_{$_inline_property}\" ";' .
+            'echo "data-inline-type=\"' . $type . '\" ";' .
+            'echo "data-inline-entity=\"$_inline_class\" ";' .
+            'echo "data-inline-id=\"$_inline_id\" ";' .
+            'echo "data-inline-property=\"$_inline_property\" "; ' .
+            '} ?>';
+
+        $node->innerContent = $writer->write('<?php echo %modify($_inline_content); ?>');
+    }
+
+    /**
+     * @param MacroNode $node
+     * @param PhpWriter $writer
+     */
+    public function macroEntityBlock(MacroNode $node, PhpWriter $writer): void
+    {
+        $entity = $writer->formatArgs();
+        $node->openingCode = "<?php \$inlineEntityStack[] = $entity; ?>";
+        $node->closingCode = '<?php array_pop($inlineEntityStack); ?>';
     }
 
     /**
