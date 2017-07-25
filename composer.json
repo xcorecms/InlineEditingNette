@@ -50,5 +50,8 @@
     "psr-4": {
       "XcoreCMS\\InlineEditingNette\\Tests\\": "tests/"
     }
+  },
+  "config": {
+    "discard-changes": true
   }
 }
