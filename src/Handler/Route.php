@@ -62,8 +62,7 @@ class Route implements IRouter
      */
     public function match(IRequest $httpRequest): ?Request
     {
-//        return ($httpRequest->getUrl()->getPath() === $this->mask && $httpRequest->getMethod() === IRequest::POST) ?
-        return ($httpRequest->getUrl()->getPath() === $this->mask && 'POST' === IRequest::POST) ?
+        return ($httpRequest->getUrl()->getPath() === $this->mask && $httpRequest->getMethod() === IRequest::POST) ?
             new Request(
                 'Nette:Micro',
                 IRequest::POST,
@@ -79,7 +78,7 @@ class Route implements IRouter
      */
     public function constructUrl(Request $appRequest, Url $refUrl): ?string
     {
-        return $refUrl->getAbsoluteUrl();
+        return null;
     }
 
     /**
