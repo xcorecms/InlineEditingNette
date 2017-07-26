@@ -51,11 +51,6 @@ class InlinePermissionChecker
             return false;
         }
 
-        // no handlers - is allowed
-        if (count($this->onCheckItemPermission) === 0) {
-            return true;
-        }
-
         // check item permissions
         $event = new CheckInlineItemPermissionEvent($namespace, $locale, $name);
         $this->onCheckItemPermission($event);
@@ -73,11 +68,6 @@ class InlinePermissionChecker
         // global allowed
         if ($isAllowed === false) {
             return false;
-        }
-
-        // no handlers - is allowed
-        if (count($this->onCheckEntityPermission) === 0) {
-            return true;
         }
 
         // check entity permissions

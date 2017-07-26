@@ -5,7 +5,9 @@ namespace XcoreCMS\InlineEditingNette\Security;
 
 use Nette\Security\User;
 use Nette\SmartObject;
+use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineEntityPermissionEvent;
 use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineGlobalPermissionEvent;
+use XcoreCMS\InlineEditingNette\Security\Event\CheckInlineItemPermissionEvent;
 
 /**
  * @author Jakub Janata <jakubjanata@gmail.com>
@@ -28,6 +30,14 @@ class SimpleUserRoleCheckerService
                     return;
                 }
             }
+        };
+
+        $checker->onCheckItemPermission[] = function (CheckInlineItemPermissionEvent $event) {
+            $event->setAllowed();
+        };
+
+        $checker->onCheckEntityPermission[] = function (CheckInlineEntityPermissionEvent $event) {
+            $event->setAllowed();
         };
     }
 }
