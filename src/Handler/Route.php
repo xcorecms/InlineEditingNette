@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Handler;
 
+use Closure;
 use Nette\Application\IRouter;
 use Nette\Application\Request;
 use Nette\Application\Responses\JsonResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
 use Nette\Http\Url;
+use Nette\SmartObject;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use XcoreCMS\InlineEditing\Model\Entity\EntityPersister;
@@ -18,9 +20,15 @@ use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
 
 /**
  * @author Jakub Janata <jakubjanata@gmail.com>
+ * @method void onInvoke()
  */
 class Route implements IRouter
 {
+    use SmartObject;
+
+    /** @var Closure[] */
+    public $onInvoke = [];
+
     /** @var string */
     private $mask;
 
@@ -86,6 +94,8 @@ class Route implements IRouter
      */
     public function __invoke()
     {
+        $this->onInvoke();
+
         try {
             /** @var array $data */
             $data = Json::decode(file_get_contents('php://input'), JSON_OBJECT_AS_ARRAY);
