@@ -73,8 +73,6 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             ->setClass(Cache::class, ['@cache.storage', 'inlineEditing']);
 
         // persistence layer
-
-        // persistence layer
         if ($this->config['persistenceLayer'] === null) {
             // detect
             if ($builder->hasDefinition('doctrine.default.connection')) {
@@ -91,7 +89,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             }
         } else {
             $persistenceDef = $this->config['persistenceLayer'];
-            $persistenceClass = $builder->getDefinition($persistenceDef)->getClass();
+            $persistenceClass = Dbal::class;
         }
 
         $this->persistenceClass = $persistenceClass;
