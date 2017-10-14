@@ -153,8 +153,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         // macros
         $latteFactory->addSetup(
             '?->onCompile[] = function($engine) {' .
-            Macros::class . '::install($engine->getCompiler(), ?, ' . ($translator !== null ? 'true' : 'false') . ');}',
-            ['@self', '@http.request']
+            Macros::class . '::install($engine->getCompiler(), ' . ($translator !== null ? 'true' : 'false') . ');}',
+            ['@self']
         );
 
         // filters
