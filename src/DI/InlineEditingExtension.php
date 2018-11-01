@@ -12,6 +12,7 @@ use Nette\DI\MissingServiceException;
 use Nette\InvalidArgumentException;
 use Nette\NotImplementedException;
 use PDO;
+use RuntimeException;
 use XcoreCMS\InlineEditing\Model\Entity\EntityPersister;
 use XcoreCMS\InlineEditing\Model\Simple\ContentProvider;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dbal;
@@ -112,7 +113,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         if (is_array($config['allowedRoles'])) {
             $builder
                 ->addDefinition($this->prefix('simpleChecker'))
-                ->setClass(SimpleUserRoleCheckerService::class, [$config['allowedRoles']])
+                ->setFactory(SimpleUserRoleCheckerService::class, [$config['allowedRoles']])
                 ->addTag('run');
         }
 
@@ -121,7 +122,11 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             // entity persister
             $entityPersisterDef = $builder
                 ->addDefinition($this->prefix('entityPersister'))
-                ->setClass(EntityPersister::class);
+                ->setType(EntityPersister::class);
+
+            if ($routerDef->getFactory() === null) {
+                throw new RuntimeException('Router factory def is null');
+            }
 
             $routerDef->getFactory()->arguments['entityPersister'] = $entityPersisterDef;
         }
@@ -141,7 +146,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         // check translator exists
         $translator = null;
         foreach ($builder->getDefinitions() as $name => $def) {
-            $implements = class_implements($def->getClass()) ?: [];
+            $implements = $def->getType() !== null ? class_implements($def->getType()) : [];
             if (isset($implements[TranslatorInterface::class])) {
                 $translator = "@$name";
                 break;
@@ -224,7 +229,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
                 break;
             // TODO ndb + dibi
             default:
-                throw new NotImplementedException;
+                throw new NotImplementedException();
         }
 
         if (strpos($dsn, 'mysql') === 0) {
@@ -260,7 +265,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             ALTER TABLE ONLY $tableName ADD CONSTRAINT {$tableName}_unique UNIQUE (namespace, locale, name);
             CREATE INDEX {$tableName}_index ON $tableName USING btree (namespace, locale, name);";
         } else {
-            throw new \RuntimeException('Invalid pdo driver. Supported: mysql|pgsql|postgre');
+            throw new RuntimeException('Invalid pdo driver. Supported: mysql|pgsql|postgre');
         }
 
         $pdo = new PDO($dsn, $username, $password);

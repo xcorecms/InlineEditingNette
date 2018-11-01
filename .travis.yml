@@ -13,7 +13,7 @@ install:
 
 script:
     - php vendor/bin/phpstan analyse ./src --level 7
-    - php vendor/bin/phpcs --standard=PSR2 --ignore=./src/Resources  ./src
+    - php vendor/bin/phpcs --standard=PSR12  ./src
 #    - php vendor/bin/tester tests -p phpdbg --coverage ./coverage.xml --coverage-src ./src
 
 after_script:

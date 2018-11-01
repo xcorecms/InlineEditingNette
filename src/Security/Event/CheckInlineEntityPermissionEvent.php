@@ -23,7 +23,7 @@ class CheckInlineEntityPermissionEvent
     private $entity;
 
     /**
-     * @param $entity
+     * @param mixed $entity
      */
     public function __construct($entity)
     {

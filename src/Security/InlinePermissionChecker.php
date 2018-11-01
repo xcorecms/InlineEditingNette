@@ -82,7 +82,7 @@ class InlinePermissionChecker
     public function isGlobalEditationAllowed(): bool
     {
         if ($this->globalEditationAllowed === null) {
-            $event = new CheckInlineGlobalPermissionEvent;
+            $event = new CheckInlineGlobalPermissionEvent();
             $this->onCheckGlobalPermission($event);
             $this->globalEditationAllowed = $event->isAllowed();
         }
