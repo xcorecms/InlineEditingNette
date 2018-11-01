@@ -35,7 +35,7 @@ extension:
 inline:
     fallback: en      # default false - fallback locale
     tableName: inline # default inline_content - table name
-    persistenceLayer: @doctrine.default.connection # default autodetect (order: doctrine, ndb, dibi)
+    persistenceLayer: @doctrine.default.connection # default autodetect (order: doctrine, ndb, dibi), for pdo use PDO('dsn', 'root')    
     url: '/inline-gw' # default '/inline-editing' - route path mask for communication with backend
     allowedRoles: ['admin', 'editor'] # default null
     install:

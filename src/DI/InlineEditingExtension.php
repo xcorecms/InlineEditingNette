@@ -9,15 +9,17 @@ use FreezyBee\PrependRoute\DI\PrependRouteExtension;
 use Nette\Bridges\ApplicationLatte\ILatteFactory;
 use Nette\DI\CompilerExtension;
 use Nette\DI\MissingServiceException;
+use Nette\DI\Statement;
 use Nette\InvalidArgumentException;
 use Nette\NotImplementedException;
-use PDO;
+use PDO as XPDO;
 use RuntimeException;
 use XcoreCMS\InlineEditing\Model\Entity\EntityPersister;
 use XcoreCMS\InlineEditing\Model\Simple\ContentProvider;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dbal;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dibi;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\NetteDatabase;
+use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Pdo;
 use XcoreCMS\InlineEditingNette\Handler\Route;
 use XcoreCMS\InlineEditingNette\Latte\Macros;
 use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
@@ -47,8 +49,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         ]
     ];
 
-    /** @var string|null */
-    private $persistenceClass;
+    /** @var array|string|null */
+    private $persistenceConfig;
 
     /**
      *
@@ -65,13 +67,13 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
 
         $routerDef = $builder
             ->addDefinition($this->prefix('router'))
-            ->setClass(Route::class, [$config['url']])
+            ->setFactory(Route::class, [$config['url']])
             ->setAutowired(false);
 
         // cache
         $cache = $builder
             ->addDefinition($this->prefix('cache'))
-            ->setClass(Cache::class, ['@cache.storage', 'inlineEditing']);
+            ->setFactory(Cache::class, ['@cache.storage', 'inlineEditing']);
 
         // persistence layer
         if ($this->config['persistenceLayer'] === null) {
@@ -88,26 +90,30 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             } else {
                 throw new InvalidArgumentException(__CLASS__ . ' can not detect persistence layer');
             }
+            $this->persistenceConfig = $persistenceClass;
         } else {
             $persistenceDef = $this->config['persistenceLayer'];
-            $persistenceClass = Dbal::class;
+            if ($persistenceDef instanceof Statement && $persistenceDef->entity === 'PDO') {
+                $persistenceClass = Pdo::class;
+                $this->persistenceConfig = $persistenceDef->arguments;
+            } else {
+                $this->persistenceConfig = $persistenceClass = Dbal::class;
+            }
         }
-
-        $this->persistenceClass = $persistenceClass;
 
         $persistenceLayer = $builder
             ->addDefinition($this->prefix('persistenceLayer'))
-            ->setClass($persistenceClass, [$this->config['tableName'], $persistenceDef]);
+            ->setFactory($persistenceClass, [$this->config['tableName'], $persistenceDef]);
 
         // content provider
         $builder
             ->addDefinition($this->prefix('contentProvider'))
-            ->setClass(ContentProvider::class, [['fallback' => $config['fallback']], $cache, $persistenceLayer]);
+            ->setFactory(ContentProvider::class, [['fallback' => $config['fallback']], $cache, $persistenceLayer]);
 
         // inline permission checker
         $builder
             ->addDefinition($this->prefix('permissionChecker'))
-            ->setClass(InlinePermissionChecker::class);
+            ->setType(InlinePermissionChecker::class);
 
         // simple user role checker
         if (is_array($config['allowedRoles'])) {
@@ -215,7 +221,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         $tableName = $this->config['tableName'];
 
         switch (true) {
-            case $this->persistenceClass === Dbal::class:
+            case $this->persistenceConfig === Dbal::class:
                 $factory = $builder->getDefinitionByType(Connection::class)->getFactory();
                 if ($factory === null) {
                     throw new MissingServiceException('Can\'t find definition of ' . Connection::class);
@@ -227,7 +233,11 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
                 $username = $options['user'];
                 $password = $options['password'];
                 break;
-            // TODO ndb + dibi
+            case is_array($this->persistenceConfig):
+                $dsn = $this->persistenceConfig[0];
+                $username = $this->persistenceConfig[1];
+                $password = $this->persistenceConfig[2] ?? null;
+                break;
             default:
                 throw new NotImplementedException();
         }
@@ -268,7 +278,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             throw new RuntimeException('Invalid pdo driver. Supported: mysql|pgsql|postgre');
         }
 
-        $pdo = new PDO($dsn, $username, $password);
+        $pdo = new XPDO($dsn, $username, $password);
         $pdo->exec($sql);
     }
 
