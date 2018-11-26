@@ -81,8 +81,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
             if ($builder->hasDefinition('doctrine.default.connection')) {
                 $persistenceDef = '@doctrine.default.connection';
                 $persistenceClass = Dbal::class;
-            } elseif ($builder->hasDefinition('nette.database.connection')) {
-                $persistenceDef = '@nette.database.connection';
+            } elseif ($builder->hasDefinition('database.default.connection')) {
+                $persistenceDef = '@database.default.connection';
                 $persistenceClass = NetteDatabase::class;
             } elseif ($builder->hasDefinition('dibi.connection')) {
                 $persistenceDef = '@dibi.connection';
