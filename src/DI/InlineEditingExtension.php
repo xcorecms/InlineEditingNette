@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\DI;
@@ -33,7 +34,7 @@ use Kdyby\Doctrine\Connection;
 class InlineEditingExtension extends CompilerExtension implements IPrependRouteProvider
 {
     /**
-     * @var array
+     * @var array<string, mixed>
      */
     private $defaults = [
         'fallback' => false,
@@ -49,7 +50,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         ]
     ];
 
-    /** @var array|string|null */
+    /** @var mixed[]|string|null */
     private $persistenceConfig;
 
     /**

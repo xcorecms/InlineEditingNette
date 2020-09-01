@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Security;
@@ -17,7 +18,7 @@ class SimpleUserRoleCheckerService
     use SmartObject;
 
     /**
-     * @param array $roles
+     * @param string[] $roles
      * @param InlinePermissionChecker $checker
      * @param User $user
      */

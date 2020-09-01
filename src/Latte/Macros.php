@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Latte;
@@ -146,7 +147,7 @@ final class Macros extends MacroSet
      * @param string $code
      * @param string $type
      */
-    protected function prepareEntityMacro(MacroNode $node, PhpWriter $writer, string $code, string $type)
+    protected function prepareEntityMacro(MacroNode $node, PhpWriter $writer, string $code, string $type): void
     {
         $node->openingCode = $writer->write('<?php ' .
             $code .

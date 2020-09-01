@@ -34,7 +34,7 @@
     "symfony/property-access": "^4.0",
     "squizlabs/php_codesniffer": "^3.0",
     "nette/tester": "^2.1",
-    "phpstan/phpstan": "^0.10"
+    "phpstan/phpstan": "^0.12"
   },
   "suggest": {
     "kdyby/doctrine": "If you wanna use entity features",

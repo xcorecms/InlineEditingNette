@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Handler;
@@ -70,15 +71,52 @@ class Route implements IRouter
      */
     public function match(IRequest $httpRequest): ?Request
     {
-        return ($httpRequest->getUrl()->getPath() === $this->mask && $httpRequest->getMethod() === IRequest::POST) ?
-            new Request(
-                'Nette:Micro',
-                IRequest::POST,
-                ['callback' => $this],
-                [],
-                [],
-                [Request::SECURED => $httpRequest->isSecured()]
-            ) : null;
+        if ($httpRequest->getUrl()->getPath() !== $this->mask || $httpRequest->getMethod() !== IRequest::POST) {
+            return null;
+        }
+
+        $callback = function () {
+            $this->onInvoke();
+
+            try {
+                /** @var mixed[] $data */
+                $data = Json::decode(file_get_contents('php://input'), Json::FORCE_ARRAY);
+            } catch (JsonException $exception) {
+                $this->response->setCode(IResponse::S500_INTERNAL_SERVER_ERROR);
+                return new JsonResponse([]);
+            }
+
+            $payload = [];
+
+            foreach ($data as $elementId => $item) {
+                $type = $item['type'] ?? null;
+                if ($type === 'simple') {
+                    $payload[$elementId] = $this->processSimple($item);
+                } elseif ($type === 'entity' || $type === 'entity-specific') {
+                    $this->processEntity($item);
+                }
+            }
+
+            // only if entityPersister is loaded
+            if ($this->entityPersister !== null) {
+                $container = $this->entityPersister->flush();
+                $payload = array_merge($payload, $container->generateResponse());
+                if ($container->isValid() === false) {
+                    $this->response->setCode(IResponse::S400_BAD_REQUEST);
+                }
+            }
+
+            return new JsonResponse($payload);
+        };
+
+        return new Request(
+            'Nette:Micro',
+            IRequest::POST,
+            ['callback' => $callback],
+            [],
+            [],
+            [Request::SECURED => $httpRequest->isSecured()]
+        );
     }
 
     /**
@@ -90,46 +128,8 @@ class Route implements IRouter
     }
 
     /**
-     *
-     */
-    public function __invoke()
-    {
-        $this->onInvoke();
-
-        try {
-            /** @var array $data */
-            $data = Json::decode(file_get_contents('php://input'), JSON_OBJECT_AS_ARRAY);
-        } catch (JsonException $exception) {
-            $this->response->setCode(IResponse::S500_INTERNAL_SERVER_ERROR);
-            return new JsonResponse([]);
-        }
-
-        $payload = [];
-
-        foreach ($data as $elementId => $item) {
-            $type = $item['type'] ?? null;
-            if ($type === 'simple') {
-                $payload[$elementId] = $this->processSimple($item);
-            } elseif ($type === 'entity' || $type === 'entity-specific') {
-                $this->processEntity($item);
-            }
-        }
-
-        // only if entityPersister is loaded
-        if ($this->entityPersister !== null) {
-            $container = $this->entityPersister->flush();
-            $payload = array_merge($payload, $container->generateResponse());
-            if ($container->isValid() === false) {
-                $this->response->setCode(IResponse::S400_BAD_REQUEST);
-            }
-        }
-
-        return new JsonResponse($payload);
-    }
-
-    /**
-     * @param array $item
-     * @return array
+     * @param array<string, string> $item
+     * @return array<string, mixed>
      */
     protected function processSimple(array $item): array
     {
@@ -153,9 +153,9 @@ class Route implements IRouter
     }
 
     /**
-     * @param array $item
+     * @param array<string, string> $item
      */
-    protected function processEntity(array $item)
+    protected function processEntity(array $item): void
     {
         if ($this->entityPersister === null) {
             throw new \RuntimeException(
