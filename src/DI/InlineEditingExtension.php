@@ -24,7 +24,7 @@ use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Pdo;
 use XcoreCMS\InlineEditingNette\Handler\Route;
 use XcoreCMS\InlineEditingNette\Latte\Macros;
 use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use XcoreCMS\InlineEditingNette\Security\SimpleUserRoleCheckerService;
 use Kdyby\Doctrine\Connection;
 
