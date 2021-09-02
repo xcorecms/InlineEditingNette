@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace XcoreCMS\InlineEditingNette\Handler;
 
 use Closure;
-use Nette\Application\IRouter;
-use Nette\Application\Request;
 use Nette\Application\Responses\JsonResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
-use Nette\Http\Url;
+use Nette\Http\UrlScript;
+use Nette\Routing\Router;
 use Nette\SmartObject;
+use Nette\Utils\FileSystem;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use XcoreCMS\InlineEditing\Model\Entity\EntityPersister;
@@ -23,7 +23,7 @@ use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
  * @author Jakub Janata <jakubjanata@gmail.com>
  * @method void onInvoke()
  */
-class Route implements IRouter
+class Route implements Router
 {
     use SmartObject;
 
@@ -67,9 +67,9 @@ class Route implements IRouter
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
-    public function match(IRequest $httpRequest): ?Request
+    public function match(IRequest $httpRequest): ?array
     {
         if ($httpRequest->getUrl()->getPath() !== $this->mask || $httpRequest->getMethod() !== IRequest::POST) {
             return null;
@@ -80,7 +80,7 @@ class Route implements IRouter
 
             try {
                 /** @var mixed[] $data */
-                $data = Json::decode(file_get_contents('php://input'), Json::FORCE_ARRAY);
+                $data = Json::decode(FileSystem::read('php://input'), Json::FORCE_ARRAY);
             } catch (JsonException $exception) {
                 $this->response->setCode(IResponse::S500_INTERNAL_SERVER_ERROR);
                 return new JsonResponse([]);
@@ -109,20 +109,16 @@ class Route implements IRouter
             return new JsonResponse($payload);
         };
 
-        return new Request(
-            'Nette:Micro',
-            IRequest::POST,
-            ['callback' => $callback],
-            [],
-            [],
-            [Request::SECURED => $httpRequest->isSecured()]
-        );
+        return [
+            'presenter' => 'Nette:Micro',
+            'callback' => $callback,
+        ];
     }
 
     /**
-     * {@inheritdoc}
+     * @param array<string, mixed> $params
      */
-    public function constructUrl(Request $appRequest, Url $refUrl): ?string
+    public function constructUrl(array $params, UrlScript $refUrl): ?string
     {
         return null;
     }
@@ -168,6 +164,10 @@ class Route implements IRouter
         }
 
         $className = $item['entity'] ?? '';
+        if (!class_exists($className)) {
+            throw new \RuntimeException("$className doesn't exists");
+        }
+
         $id = $item['id'] ?? '';
         $property = $item['property'] ?? '';
         $value = $item['content'] ?? '';

@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\DI;
 
+use Doctrine\DBAL\Driver\Connection;
 use FreezyBee\NetteCachingPsr6\Cache;
 use FreezyBee\PrependRoute\DI\IPrependRouteProvider;
 use FreezyBee\PrependRoute\DI\PrependRouteExtension;
-use Nette\Bridges\ApplicationLatte\ILatteFactory;
+use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\DI\CompilerExtension;
+use Nette\DI\Definitions\FactoryDefinition;
+use Nette\DI\Definitions\Statement;
 use Nette\DI\MissingServiceException;
-use Nette\DI\Statement;
 use Nette\InvalidArgumentException;
 use Nette\NotImplementedException;
 use PDO as XPDO;
@@ -24,9 +26,7 @@ use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Pdo;
 use XcoreCMS\InlineEditingNette\Handler\Route;
 use XcoreCMS\InlineEditingNette\Latte\Macros;
 use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
-use Symfony\Contracts\Translation\TranslatorInterface;
 use XcoreCMS\InlineEditingNette\Security\SimpleUserRoleCheckerService;
-use Kdyby\Doctrine\Connection;
 
 /**
  * @author Jakub Janata <jakubjanata@gmail.com>
@@ -44,6 +44,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         'assetsDir' => 'inline',
         'allowedRoles' => null,
         'entityMode' => false,
+        'translator' => null,
         'install' => [
             'assets' => true,
             'database' => true
@@ -131,10 +132,6 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
                 ->addDefinition($this->prefix('entityPersister'))
                 ->setType(EntityPersister::class);
 
-            if ($routerDef->getFactory() === null) {
-                throw new RuntimeException('Router factory def is null');
-            }
-
             $routerDef->getFactory()->arguments['entityPersister'] = $entityPersisterDef;
         }
 
@@ -150,17 +147,13 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     {
         $builder = $this->getContainerBuilder();
 
-        // check translator exists
-        $translator = null;
-        foreach ($builder->getDefinitions() as $name => $def) {
-            $implements = $def->getType() !== null ? class_implements($def->getType()) : [];
-            if (isset($implements[TranslatorInterface::class])) {
-                $translator = "@$name";
-                break;
-            }
-        }
+        /** @var mixed $config */
+        $config = $this->getConfig();
+        $translator = $config['translator'];
 
-        $latteFactory = $builder->getDefinitionByType(ILatteFactory::class);
+        /** @var FactoryDefinition $latteFactoryDef */
+        $latteFactoryDef = $builder->getDefinitionByType(LatteFactory::class);
+        $latteFactory = $latteFactoryDef->getResultDefinition();
 
         // macros
         $latteFactory->addSetup(
@@ -188,7 +181,7 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         }
 
         // init db
-        if ($this->getConfig()['install']['database'] === true) {
+        if ($config['install']['database'] === true) {
             $this->initDatabaseTable();
         }
     }
@@ -200,8 +193,11 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     {
         $params = $this->getContainerBuilder()->parameters;
 
+        /** @var mixed $config */
+        $config = $this->getConfig();
+
         $originDir = __DIR__ . '/../../../inline-editing/client-side/dist';
-        $targetDir = $params['wwwDir'] . '/' . $this->getConfig()['assetsDir'];
+        $targetDir = $params['wwwDir'] . '/' . $config['assetsDir'];
 
         if ('\\' === DIRECTORY_SEPARATOR) {
             $originDir = str_replace('/', '\\', $originDir);
@@ -219,14 +215,16 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     protected function initDatabaseTable(): void
     {
         $builder = $this->getContainerBuilder();
-        $tableName = $this->config['tableName'];
+
+        /** @var mixed $config */
+        $config = $this->getConfig();
+        $tableName = $config['tableName'];
 
         switch (true) {
             case $this->persistenceConfig === Dbal::class:
-                $factory = $builder->getDefinitionByType(Connection::class)->getFactory();
-                if ($factory === null) {
-                    throw new MissingServiceException('Can\'t find definition of ' . Connection::class);
-                }
+                /** @var FactoryDefinition $dbal */
+                $dbal = $builder->getDefinitionByType(Connection::class);
+                $factory = $dbal->getResultDefinition()->getFactory();
                 $options = $factory->arguments[0];
 
                 $driver = strpos($options['driver'], 'mysql') !== false ? 'mysql' : $options['driver'];

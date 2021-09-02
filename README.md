@@ -33,6 +33,7 @@ extension:
     inline: XcoreCMS\InlineEditingNette\DI\InlineEditingExtension
 
 inline:
+    translator: @translator # default empty
     fallback: en      # default false - fallback locale
     tableName: inline # default inline_content - table name
     persistenceLayer: @doctrine.default.connection # default autodetect (order: doctrine, ndb, dibi), for pdo use PDO('dsn', 'root')    
