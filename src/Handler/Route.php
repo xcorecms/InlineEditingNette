@@ -163,14 +163,14 @@ class Route implements Router
             return;
         }
 
-        $className = $item['entity'] ?? '';
+        $className = $item['entity'];
         if (!class_exists($className)) {
             throw new \RuntimeException("$className doesn't exists");
         }
 
-        $id = $item['id'] ?? '';
-        $property = $item['property'] ?? '';
-        $value = $item['content'] ?? '';
+        $id = $item['id'];
+        $property = $item['property'];
+        $value = $item['content'];
 
         $this->entityPersister->update(new Element($className, $id, $property, $value), function ($entity) {
             return $this->permissionChecker->isEntityEditationAllowed($entity) ? false : 'Forbidden';
