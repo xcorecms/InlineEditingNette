@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\DI;
 
-use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Connection;
 use FreezyBee\NetteCachingPsr6\Cache;
 use FreezyBee\PrependRoute\DI\IPrependRouteProvider;
 use FreezyBee\PrependRoute\DI\PrependRouteExtension;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\FactoryDefinition;
+use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
 use Nette\DI\MissingServiceException;
 use Nette\InvalidArgumentException;
@@ -222,9 +223,9 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
 
         switch (true) {
             case $this->persistenceConfig === Dbal::class:
-                /** @var FactoryDefinition $dbal */
+                /** @var ServiceDefinition $dbal */
                 $dbal = $builder->getDefinitionByType(Connection::class);
-                $factory = $dbal->getResultDefinition()->getFactory();
+                $factory = $dbal->getFactory();
                 $options = $factory->arguments[0];
 
                 $driver = strpos($options['driver'], 'mysql') !== false ? 'mysql' : $options['driver'];
