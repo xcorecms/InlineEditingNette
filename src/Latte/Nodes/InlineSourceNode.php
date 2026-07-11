@@ -26,7 +26,7 @@ final class InlineSourceNode extends StatementNode
     {
         return <<<'XX'
             if ($this->global->inlinePermissionChecker->isGlobalEditationAllowed()) {
-                $_inline_baseUrl = LR\HtmlHelpers::escapeAttr(\Latte\Essential\Filters::checkUrl($baseUrl));
+                $_inline_baseUrl = LR\Filters::escapeHtmlAttr(\Latte\Essential\Filters::checkUrl($baseUrl));
                 echo '<script src="' . $_inline_baseUrl . '/inline/inline.js" id="inline-editing-source"
                 data-source-css="' . $_inline_baseUrl . '/inline/inline.css"
                 data-source-tinymce-js="' . $_inline_baseUrl . '/inline/tinymce/tinymce.min.js"

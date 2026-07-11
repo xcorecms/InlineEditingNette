@@ -6,6 +6,7 @@ namespace XcoreCMS\InlineEditingNette\Latte\Nodes;
 
 use Latte\Compiler\Nodes\AreaNode;
 use Latte\Compiler\Nodes\AuxiliaryNode;
+use Latte\Compiler\Nodes\FragmentNode;
 use Latte\Compiler\Nodes\Php\Expression\ArrayNode;
 use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\Php\ModifierNode;
@@ -57,6 +58,7 @@ final class InlineEntityNode extends StatementNode
         if ($tag->isNAttribute() && $tag->htmlElement !== null) {
             $node->isNAttribute = true;
             $element = $tag->htmlElement;
+            $element->attributes ??= new FragmentNode;
             $element->attributes->children[] = new AuxiliaryNode(
                 static fn(PrintContext $context): string => $node->printAttributes($context)
             );
@@ -92,12 +94,12 @@ final class InlineEntityNode extends StatementNode
             <<<'XX'
                 if ($this->global->inlinePermissionChecker->isEntityEditationAllowed($_inline_entity)) {
                     echo ' id="inline_',
-                        LR\HtmlHelpers::escapeAttr($_inline_class . '_' . $_inline_id . '_' . $_inline_property),
+                        LR\Filters::escapeHtmlAttr($_inline_class . '_' . $_inline_id . '_' . $_inline_property),
                         '"',
                         ' data-inline-type="', %dump, '"',
-                        ' data-inline-entity="', LR\HtmlHelpers::escapeAttr($_inline_class), '"',
-                        ' data-inline-id="', LR\HtmlHelpers::escapeAttr($_inline_id), '"',
-                        ' data-inline-property="', LR\HtmlHelpers::escapeAttr($_inline_property), '"';
+                        ' data-inline-entity="', LR\Filters::escapeHtmlAttr($_inline_class), '"',
+                        ' data-inline-id="', LR\Filters::escapeHtmlAttr($_inline_id), '"',
+                        ' data-inline-property="', LR\Filters::escapeHtmlAttr($_inline_property), '"';
                 }
 
                 XX,

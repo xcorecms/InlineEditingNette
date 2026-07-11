@@ -6,6 +6,7 @@ namespace XcoreCMS\InlineEditingNette\Latte\Nodes;
 
 use Latte\Compiler\Nodes\AreaNode;
 use Latte\Compiler\Nodes\AuxiliaryNode;
+use Latte\Compiler\Nodes\FragmentNode;
 use Latte\Compiler\Nodes\Php\ModifierNode;
 use Latte\Compiler\Nodes\StatementNode;
 use Latte\Compiler\PrintContext;
@@ -42,7 +43,7 @@ final class InlineNode extends StatementNode
         // read raw arguments (up to filters) - values are compile-time literals as in the original macro
         $stream = $tag->parser->stream;
         $text = '';
-        while (!$tag->parser->isEnd() && $stream->peek()->text !== '|') {
+        while (!$tag->parser->isEnd() && ($token = $stream->peek()) !== null && $token->text !== '|') {
             $text .= $stream->consume()->text;
         }
         $node->modifier = $tag->parser->parseModifier();
@@ -74,6 +75,7 @@ final class InlineNode extends StatementNode
         if ($tag->isNAttribute() && $tag->htmlElement !== null) {
             $node->isNAttribute = true;
             $element = $tag->htmlElement;
+            $element->attributes ??= new FragmentNode;
             $element->attributes->children[] = new AuxiliaryNode(
                 static fn(PrintContext $context): string => $node->printAttributes($context)
             );
@@ -102,9 +104,9 @@ final class InlineNode extends StatementNode
             if ($this->global->inlinePermissionChecker
                 ->isItemEditationAllowed($_inline_namespace, $_inline_locale, $_inline_name)) {
                 echo ' data-inline-type="simple"',
-                    ' data-inline-name="', LR\HtmlHelpers::escapeAttr($_inline_name), '"',
-                    ' data-inline-namespace="', LR\HtmlHelpers::escapeAttr($_inline_namespace), '"',
-                    ' data-inline-locale="', LR\HtmlHelpers::escapeAttr($_inline_locale), '"';
+                    ' data-inline-name="', LR\Filters::escapeHtmlAttr($_inline_name), '"',
+                    ' data-inline-namespace="', LR\Filters::escapeHtmlAttr($_inline_namespace), '"',
+                    ' data-inline-locale="', LR\Filters::escapeHtmlAttr($_inline_locale), '"';
             }
 
             XX;
