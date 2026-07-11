@@ -25,7 +25,7 @@ use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Dibi;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\NetteDatabase;
 use XcoreCMS\InlineEditing\Model\Simple\PersistenceLayer\Pdo;
 use XcoreCMS\InlineEditingNette\Handler\Route;
-use XcoreCMS\InlineEditingNette\Latte\Macros;
+use XcoreCMS\InlineEditingNette\Latte\InlineEditingLatteExtension;
 use XcoreCMS\InlineEditingNette\Security\InlinePermissionChecker;
 use XcoreCMS\InlineEditingNette\Security\SimpleUserRoleCheckerService;
 
@@ -156,30 +156,14 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
         $latteFactoryDef = $builder->getDefinitionByType(LatteFactory::class);
         $latteFactory = $latteFactoryDef->getResultDefinition();
 
-        // macros
-        $latteFactory->addSetup(
-            '?->onCompile[] = function($engine) {' .
-            Macros::class . '::install($engine->getCompiler(), ' . ($translator !== null ? 'true' : 'false') . ');}',
-            ['@self']
-        );
-
-        // filters
-        $latteFactory->addSetup(
-            '?->addFilter(\'inlineEditingContent\', function(\?string $namespace, \?string $locale, string $name) {
-                return ?->getContent((string) $namespace, (string) $locale, $name);
-            })',
-            ['@self', $this->prefix('@contentProvider')]
-        );
-
-        // providers
-        $latteFactory->addSetup(
-            '?->addProvider(\'inlinePermissionChecker\', ?)',
-            ['@self', $this->prefix('@permissionChecker')]
-        );
-
-        if ($translator) {
-            $latteFactory->addSetup('?->addProvider(\'inlineTranslatorProvider\', ?)', ['@self', $translator]);
-        }
+        // latte 3 extension (tags, filters, providers)
+        $latteFactory->addSetup('addExtension', [
+            new Statement(InlineEditingLatteExtension::class, [
+                $this->prefix('@contentProvider'),
+                $this->prefix('@permissionChecker'),
+                $translator,
+            ]),
+        ]);
 
         // init db
         if ($config['install']['database'] === true) {
