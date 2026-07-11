@@ -148,8 +148,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     {
         $builder = $this->getContainerBuilder();
 
-        /** @var mixed $config */
         $config = $this->getConfig();
+        assert(is_array($config));
         $translator = $config['translator'];
 
         /** @var FactoryDefinition $latteFactoryDef */
@@ -178,8 +178,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     {
         $params = $this->getContainerBuilder()->parameters;
 
-        /** @var mixed $config */
         $config = $this->getConfig();
+        assert(is_array($config));
 
         $originDir = __DIR__ . '/../../../inline-editing/client-side/dist';
         $targetDir = $params['wwwDir'] . '/' . $config['assetsDir'];
@@ -201,8 +201,8 @@ class InlineEditingExtension extends CompilerExtension implements IPrependRouteP
     {
         $builder = $this->getContainerBuilder();
 
-        /** @var mixed $config */
         $config = $this->getConfig();
+        assert(is_array($config));
         $tableName = $config['tableName'];
 
         switch (true) {

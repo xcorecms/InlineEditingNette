@@ -48,6 +48,10 @@
       "XcoreCMS\\InlineEditingNette\\Tests\\": "tests/"
     }
   },
+  "scripts": {
+    "test": "tester tests -s -C",
+    "phpstan": "phpstan analyse"
+  },
   "config": {
     "sort-packages": true
   }
