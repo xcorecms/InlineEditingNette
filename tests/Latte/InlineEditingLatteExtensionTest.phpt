@@ -123,6 +123,103 @@ class InlineEditingLatteExtensionTest extends TestCase
         Assert::same('#web|en|title#', $output);
     }
 
+    public function testInlineTagWithDynamicKey(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{var $x = 1}{inline ok.$x}{/inline}');
+        Assert::same('#||ok.1#', $output);
+    }
+
+    public function testInlineTagWithDynamicKeyFromParams(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{inline ok.$key}{/inline}', ['key' => 'foo']);
+        Assert::same('#||ok.foo#', $output);
+    }
+
+    public function testInlineTagWithBracedDynamicKey(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{var $x = 1}{inline ok.{$x}}{/inline}');
+        Assert::same('#||ok.1#', $output);
+    }
+
+    public function testInlineTagWithKeyFromObjectProperty(): void
+    {
+        $latte = $this->createLatte(false);
+        $entity = new class {
+            public int $id = 7;
+        };
+
+        $output = $latte->renderToString('{inline ok.$entity->id}{/inline}', ['entity' => $entity]);
+        Assert::same('#||ok.7#', $output);
+    }
+
+    public function testInlineTagWithWholeKeyFromVariable(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{inline $key}{/inline}', ['key' => 'foo']);
+        Assert::same('#||foo#', $output);
+    }
+
+    public function testInlineTagWithDynamicNamespaceAndLocale(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString(
+            '{var $x = 1}{inline title, namespace => web.$x, locale => $lang}{/inline}',
+            ['lang' => 'cs']
+        );
+        Assert::same('#web.1|cs|title#', $output);
+    }
+
+    public function testInlineTagWithQuotedKey(): void
+    {
+        $latte = $this->createLatte(false);
+
+        Assert::same('#||ok.foo#', $latte->renderToString('{inline \'ok.foo\'}{/inline}'));
+        Assert::same('#||ok.foo#', $latte->renderToString('{inline "ok.foo"}{/inline}'));
+    }
+
+    public function testInlineTagWithStaticDottedKey(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{inline ok.foo}{/inline}');
+        Assert::same('#||ok.foo#', $output);
+    }
+
+    public function testInlineTagWithDynamicKeyAndFilter(): void
+    {
+        $latte = $this->createLatte(false);
+
+        $output = $latte->renderToString('{var $x = 1}{inline ok.$x|upper}{/inline}');
+        Assert::same('#||OK.1#', $output);
+    }
+
+    public function testInlineNAttributeWithDynamicKey(): void
+    {
+        $latte = $this->createLatte(true);
+
+        $output = $latte->renderToString('{var $x = 1}<div n:inline="ok.$x">y</div>');
+        Assert::contains('data-inline-name="ok.1"', $output);
+        Assert::contains('>#||ok.1#</div>', $output);
+    }
+
+    public function testInlineNAttributeWithDynamicKeyEscaping(): void
+    {
+        $latte = $this->createLatte(true);
+
+        $output = $latte->renderToString('<div n:inline="ok.$key">y</div>', ['key' => '"><script>']);
+        Assert::contains('data-inline-name="ok.&quot;&gt;&lt;script&gt;"', $output);
+        // attribute must not be terminated by the injected quote (inner content is intentionally raw)
+        Assert::notContains('data-inline-name="ok.">', $output);
+    }
+
     public function testInlineEntityNAttribute(): void
     {
         $latte = $this->createLatte(true);

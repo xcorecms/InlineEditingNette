@@ -58,7 +58,7 @@ final class InlineEntityNode extends StatementNode
         if ($tag->isNAttribute() && $tag->htmlElement !== null) {
             $node->isNAttribute = true;
             $element = $tag->htmlElement;
-            $element->attributes ??= new FragmentNode;
+            $element->attributes ??= new FragmentNode();
             $element->attributes->children[] = new AuxiliaryNode(
                 static fn(PrintContext $context): string => $node->printAttributes($context)
             );

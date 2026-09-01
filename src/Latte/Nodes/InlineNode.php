@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace XcoreCMS\InlineEditingNette\Latte\Nodes;
 
+use Latte\CompileException;
 use Latte\Compiler\Nodes\AreaNode;
-use Latte\Compiler\Nodes\AuxiliaryNode;
+use Latte\Compiler\Nodes\AuxiliaryNode as AreaAuxiliaryNode;
 use Latte\Compiler\Nodes\FragmentNode;
+use Latte\Compiler\Nodes\Php\Expression\AuxiliaryNode;
+use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\Php\ModifierNode;
 use Latte\Compiler\Nodes\StatementNode;
 use Latte\Compiler\PrintContext;
 use Latte\Compiler\Tag;
+use Latte\Compiler\TagLexer;
+use Latte\Compiler\TagParser;
 
 /**
  * {inline name, namespace => x, locale => y} or <div n:inline="...">
+ *
+ * Name, namespace and locale are compile-time strings which support variable interpolation,
+ * e.g. n:inline="ok.$x" or n:inline="ok.{$x}". Because the arguments are split by commas,
+ * expressions containing a comma (e.g. ok.{$f(1, 2)}) are not supported.
  *
  * @author Jakub Janata <jakubjanata@gmail.com>
  */
@@ -23,11 +32,11 @@ final class InlineNode extends StatementNode
 
     public ModifierNode $modifier;
 
-    private string $nameCode;
+    public ExpressionNode $name;
 
-    private string $namespaceCode;
+    public ExpressionNode $namespace;
 
-    private string $localeCode;
+    public ExpressionNode $locale;
 
     private bool $isNAttribute = false;
 
@@ -40,7 +49,7 @@ final class InlineNode extends StatementNode
         $node = new static();
         $tag->node = $node;
 
-        // read raw arguments (up to filters) - values are compile-time literals as in the original macro
+        // read raw arguments (up to filters) - values are compile-time strings as in the original macro
         $stream = $tag->parser->stream;
         $text = '';
         while (!$tag->parser->isEnd() && ($token = $stream->peek()) !== null && $token->text !== '|') {
@@ -50,9 +59,13 @@ final class InlineNode extends StatementNode
 
         $args = explode(',', $text);
 
-        $node->nameCode = var_export(trim($args[0]), true);
-        $node->namespaceCode = 'isset($inlineNamespaceStack) ? (string) end($inlineNamespaceStack) : \'\'';
-        $node->localeCode = $useTranslator ? '$this->global->inlineTranslatorProvider->getLocale()' : "''";
+        $node->name = self::parseValue($args[0], $tag);
+        $node->namespace = new AuxiliaryNode(
+            static fn(): string => '(isset($inlineNamespaceStack) ? (string) end($inlineNamespaceStack) : \'\')'
+        );
+        $node->locale = new AuxiliaryNode(
+            static fn(): string => $useTranslator ? '$this->global->inlineTranslatorProvider->getLocale()' : "''"
+        );
 
         // parse params
         foreach ($args as $arg) {
@@ -61,10 +74,10 @@ final class InlineNode extends StatementNode
             if (count($item) === 2) {
                 switch (trim($item[0])) {
                     case 'namespace':
-                        $node->namespaceCode = var_export(trim($item[1]), true);
+                        $node->namespace = self::parseValue($item[1], $tag);
                         break;
                     case 'locale':
-                        $node->localeCode = var_export(trim($item[1]), true);
+                        $node->locale = self::parseValue($item[1], $tag);
                         break;
                 }
             }
@@ -75,11 +88,11 @@ final class InlineNode extends StatementNode
         if ($tag->isNAttribute() && $tag->htmlElement !== null) {
             $node->isNAttribute = true;
             $element = $tag->htmlElement;
-            $element->attributes ??= new FragmentNode;
-            $element->attributes->children[] = new AuxiliaryNode(
+            $element->attributes ??= new FragmentNode();
+            $element->attributes->children[] = new AreaAuxiliaryNode(
                 static fn(PrintContext $context): string => $node->printAttributes($context)
             );
-            $element->content = new AuxiliaryNode(
+            $element->content = new AreaAuxiliaryNode(
                 static fn(PrintContext $context): string => $node->printInnerContent($context)
             );
         }
@@ -87,11 +100,35 @@ final class InlineNode extends StatementNode
         return $node;
     }
 
+    /**
+     * Converts raw argument text into an expression - unquoted values are wrapped
+     * in double quotes, so that variables inside them are interpolated.
+     */
+    private static function parseValue(string $text, Tag $tag): ExpressionNode
+    {
+        $text = trim($text);
+
+        $code = $text !== '' && ($text[0] === '"' || $text[0] === "'")
+            ? $text
+            : '"' . addcslashes($text, '"\\') . '"';
+
+        try {
+            // position must not be passed - lexer would use its offset as an offset in $code
+            return (new TagParser((new TagLexer())->tokenize($code)))->parseExpression();
+        } catch (CompileException $e) {
+            throw new CompileException($e->getMessage(), $tag->position);
+        }
+    }
+
     public function print(PrintContext $context): string
     {
-        $setup = '$_inline_namespace = ' . $this->namespaceCode . '; '
-            . '$_inline_locale = (string) ' . $this->localeCode . '; '
-            . '$_inline_name = ' . $this->nameCode . '; ';
+        $setup = $context->format(
+            '$_inline_namespace = (string) %node; $_inline_locale = (string) %node; '
+            . '$_inline_name = (string) %node; ',
+            $this->namespace,
+            $this->locale,
+            $this->name,
+        );
 
         return $setup . ($this->isNAttribute && $this->content !== null
             ? $this->content->print($context)
@@ -124,6 +161,9 @@ final class InlineNode extends StatementNode
 
     public function &getIterator(): \Generator
     {
+        yield $this->namespace;
+        yield $this->locale;
+        yield $this->name;
         yield $this->modifier;
         if ($this->content !== null) {
             yield $this->content;
