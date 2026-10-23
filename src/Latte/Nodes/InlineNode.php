@@ -52,7 +52,7 @@ final class InlineNode extends StatementNode
         // read raw arguments (up to filters) - values are compile-time strings as in the original macro
         $stream = $tag->parser->stream;
         $text = '';
-        while (!$tag->parser->isEnd() && ($token = $stream->peek()) !== null && $token->text !== '|') {
+        while (!$tag->parser->isEnd() && $stream->peek()->text !== '|') {
             $text .= $stream->consume()->text;
         }
         $node->modifier = $tag->parser->parseModifier();
@@ -141,9 +141,9 @@ final class InlineNode extends StatementNode
             if ($this->global->inlinePermissionChecker
                 ->isItemEditationAllowed($_inline_namespace, $_inline_locale, $_inline_name)) {
                 echo ' data-inline-type="simple"',
-                    ' data-inline-name="', LR\Filters::escapeHtmlAttr($_inline_name), '"',
-                    ' data-inline-namespace="', LR\Filters::escapeHtmlAttr($_inline_namespace), '"',
-                    ' data-inline-locale="', LR\Filters::escapeHtmlAttr($_inline_locale), '"';
+                    ' data-inline-name="', LR\HtmlHelpers::escapeAttr($_inline_name), '"',
+                    ' data-inline-namespace="', LR\HtmlHelpers::escapeAttr($_inline_namespace), '"',
+                    ' data-inline-locale="', LR\HtmlHelpers::escapeAttr($_inline_locale), '"';
             }
 
             XX;
